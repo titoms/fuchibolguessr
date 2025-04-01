@@ -1,0 +1,98 @@
+Football Player Guessing Game
+1. Overview
+The Football Player Guessing Game is a daily challenge where users attempt to guess a football player's name within 6 attempts. After each guess, they receive visual clues to refine their answer. The game is built with TypeScript and ShadCN for UI, ensuring a modern, accessible, and efficient user experience.
+
+2. Features & Functionalities
+2.1 Game Flow
+The game selects one football player per day.
+
+The user inputs a name via a search bar with autocomplete.
+
+After each guess, feedback is provided based on predefined rules.
+
+If the user fails after 6 attempts, they can activate “continuous mode” for unlimited attempts.
+
+Once the player is guessed, the final score is displayed based on efficiency.
+
+2.2 Clues & Feedback System
+For each incorrect guess, feedback is displayed using color-coded indicators:
+
+Nationality:
+
+🔴 Red → Wrong country.
+
+🟠 Orange → Same continent.
+
+✅ Correct → Display the country’s flag.
+
+Position:
+
+🔴 Red → Incorrect position.
+
+🟠 Orange → Same position category (e.g., attacker vs. midfielder).
+
+✅ Correct → Display exact position.
+
+Current Club:
+
+🔴 Red → Wrong club.
+
+🟠 Orange → Club is in the same league.
+
+✅ Correct → Show club logo.
+
+Career Start:
+
+Displays "Career Start" if active, "Career End" if retired.
+
+Uses ↗️↘️ indicators to show if the guessed year is too early or too late.
+
+Other Information:
+
+Age → Display numeric difference from actual age.
+
+Height → Use ↗️↘️ indicators for taller/shorter.
+
+Dominant Foot → Show ✅ if correct, otherwise display correct foot.
+
+2.3 Scoring System
+The score is calculated based on the number of attempts taken to guess correctly.
+
+A lower number of attempts = higher efficiency score.
+
+3. Technical Requirements
+3.1 Frontend
+Framework: React + TypeScript
+
+UI Library: ShadCN (Radix UI-based)
+
+State Management: Zustand or React Context
+
+Autocomplete Search: Fuse.js for fuzzy search
+
+3.2 Backend
+Database: PostgreSQL (storing player data)
+
+API: Node.js (Express or NestJS)
+
+Data Sources: External football APIs for enriching player details
+
+3.3 UI Components
+Component	Description
+<SearchBar />	Player name input with autocomplete
+<FeedbackCard />	Displays clues (nationality, position, etc.)
+<ScoreDisplay />	Shows user’s efficiency score
+<ToggleSwitch />	Enables “continuous mode” after 6 attempts
+4. Tasks & Development Plan
+Phase 1: Core Game Logic
+✅ Design database schema for players
+✅ Implement search and autocomplete functionality
+✅ Develop the clue feedback system
+
+Phase 2: UI Development
+✅ Build ShadCN components
+✅ Implement color-coded feedback system
+
+Phase 3: Enhancements
+✅ Add score calculation
+✅ Implement daily challenge logic
