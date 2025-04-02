@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -46,18 +46,36 @@ export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Player = typeof players.$inferSelect;
 
 // Game session table
-export const gameSession = pgTable("game_session", {
+export const gameSessions = pgTable("game_sessions", {
   id: serial("id").primaryKey(),
   dailyPlayerId: integer("daily_player_id").notNull(),
   date: timestamp("date").notNull().defaultNow(),
+  continuousModeEnabled: boolean("continuous_mode_enabled").notNull().default(false),
+  completed: boolean("completed").notNull().default(false),
+  score: integer("score"),
 });
 
-export const insertGameSessionSchema = createInsertSchema(gameSession).omit({
+export const insertGameSessionSchema = createInsertSchema(gameSessions).omit({
   id: true,
 });
 
 export type InsertGameSession = z.infer<typeof insertGameSessionSchema>;
-export type GameSession = typeof gameSession.$inferSelect;
+export type GameSession = typeof gameSessions.$inferSelect;
+
+// Guesses table
+export const guesses = pgTable("guesses", {
+  id: serial("id").primaryKey(),
+  gameSessionId: integer("game_session_id").notNull(),
+  feedbackData: json("feedback_data").notNull(), // Store the entire feedback JSON
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+export const insertGuessSchema = createInsertSchema(guesses).omit({
+  id: true,
+});
+
+export type InsertGuess = z.infer<typeof insertGuessSchema>;
+export type Guess = typeof guesses.$inferSelect;
 
 // Game guess schema for API communication
 export const guessSchema = z.object({

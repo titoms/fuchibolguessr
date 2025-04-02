@@ -1,17 +1,29 @@
 import { 
-  users, 
-  players, 
-  gameSession, 
   type User, 
   type InsertUser, 
   type Player, 
   type InsertPlayer,
   type GameSession,
+  type Guess,
   type FeedbackResponse,
   type GameStateResponse
 } from "@shared/schema";
 import { playerData } from "./data/players";
 import { isSameDay } from "@/lib/utils";
+import Fuse from "fuse.js";
+
+// Database imports
+import { 
+  drizzle 
+} from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { eq, like, and, or, desc } from "drizzle-orm";
+import { 
+  players as playersTable, 
+  users as usersTable,
+  gameSessions as gameSessionsTable,
+  guesses as guessesTable
+} from "./db/schema";
 
 // Storage interface
 export interface IStorage {
@@ -32,6 +44,208 @@ export interface IStorage {
   completeGame(gameId: number, score: number): Promise<void>;
 }
 
+// PostgreSQL database storage implementation
+export class PostgresStorage implements IStorage {
+  private db: any; // DrizzlePostgresJsDatabase type
+  private fuse: Fuse<Player> | null = null;
+  private players: Player[] = [];
+
+  constructor() {
+    // Create database connection
+    const connectionString = process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    
+    const client = postgres(connectionString);
+    this.db = drizzle(client);
+    
+    // Initialize player data and search index
+    this.initializePlayerData();
+  }
+
+  private async initializePlayerData() {
+    try {
+      // Check if players table is empty
+      const existingPlayers = await this.db.select().from(playersTable).limit(1);
+      
+      if (existingPlayers.length === 0) {
+        console.log("Initializing player database with sample data...");
+        
+        // Insert player data in batches
+        for (const player of playerData) {
+          await this.db.insert(playersTable).values(player);
+        }
+        
+        console.log("Player data initialized successfully");
+      }
+      
+      // Load all players for search capabilities
+      this.players = await this.getAllPlayers();
+      
+      // Initialize Fuse.js for fuzzy search
+      this.fuse = new Fuse(this.players, {
+        keys: ['name', 'nationality', 'club'],
+        threshold: 0.3,
+        includeScore: true
+      });
+      
+      console.log(`Loaded ${this.players.length} players into search index`);
+    } catch (error) {
+      console.error("Error initializing player data:", error);
+    }
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const users = await this.db.select().from(usersTable).where(eq(usersTable.id, id));
+    return users[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const users = await this.db.select().from(usersTable).where(eq(usersTable.username, username));
+    return users[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await this.db.insert(usersTable).values(insertUser).returning();
+    return user;
+  }
+  
+  // Player methods
+  async getPlayer(id: number): Promise<Player | undefined> {
+    const players = await this.db.select().from(playersTable).where(eq(playersTable.id, id));
+    return players[0];
+  }
+  
+  async getAllPlayers(): Promise<Player[]> {
+    return await this.db.select().from(playersTable);
+  }
+  
+  async searchPlayers(query: string): Promise<Player[]> {
+    // Use Fuse.js for fuzzy search if available
+    if (this.fuse && query.length >= 3) {
+      const searchResults = this.fuse.search(query);
+      return searchResults.slice(0, 10).map(result => result.item);
+    }
+    
+    // Fallback to database search
+    const lowercaseQuery = `%${query.toLowerCase()}%`;
+    const players = await this.db.select()
+      .from(playersTable)
+      .where(
+        or(
+          like(playersTable.name, lowercaseQuery),
+          like(playersTable.nationality, lowercaseQuery),
+          like(playersTable.club, lowercaseQuery)
+        )
+      )
+      .limit(10);
+    
+    return players;
+  }
+  
+  // Game session methods
+  async getOrCreateGameState(): Promise<GameStateResponse> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Try to find a game session for today
+    const recentGames = await this.db.select()
+      .from(gameSessionsTable)
+      .orderBy(desc(gameSessionsTable.id))
+      .limit(5);
+    
+    let todayGame = recentGames.find((game: GameSession) => {
+      const gameDate = new Date(game.date);
+      return isSameDay(gameDate, today);
+    });
+    
+    // If no game for today, create a new one
+    if (!todayGame) {
+      // Get a random player for today's challenge
+      const allPlayers = await this.getAllPlayers();
+      if (allPlayers.length === 0) {
+        throw new Error("No players found in the database");
+      }
+      
+      const randomIndex = Math.floor(Math.random() * allPlayers.length);
+      const dailyPlayer = allPlayers[randomIndex];
+      
+      // Insert new game session
+      [todayGame] = await this.db.insert(gameSessionsTable)
+        .values({
+          dailyPlayerId: dailyPlayer.id,
+          date: today,
+          continuousModeEnabled: false,
+          completed: false,
+        })
+        .returning();
+      
+      console.log(`Created new game with ID ${todayGame.id} for today with player ${dailyPlayer.name}`);
+    }
+    
+    // Get all guesses for this game
+    const guessRecords = await this.db.select()
+      .from(guessesTable)
+      .where(eq(guessesTable.gameSessionId, todayGame.id))
+      .orderBy(guessesTable.timestamp);
+    
+    // Parse the JSON feedback data
+    const guesses: FeedbackResponse[] = guessRecords.map((record: { feedbackData: any }) => 
+      typeof record.feedbackData === 'string' 
+        ? JSON.parse(record.feedbackData) 
+        : record.feedbackData
+    );
+    
+    return {
+      gameId: todayGame.id,
+      attempts: guesses.length,
+      maxAttempts: 6,
+      continuousModeEnabled: todayGame.continuousModeEnabled,
+      completed: todayGame.completed,
+      guesses,
+      score: todayGame.score || undefined,
+      nextGameTime: todayGame.completed ? this.getNextGameTime() : undefined,
+    };
+  }
+  
+  async recordGuess(gameId: number, feedback: FeedbackResponse): Promise<void> {
+    // Insert guess record with JSON feedback data
+    await this.db.insert(guessesTable)
+      .values({
+        gameSessionId: gameId,
+        feedbackData: feedback, // JSON type column
+        timestamp: new Date(),
+      });
+  }
+  
+  async enableContinuousMode(gameId: number): Promise<void> {
+    await this.db.update(gameSessionsTable)
+      .set({ continuousModeEnabled: true })
+      .where(eq(gameSessionsTable.id, gameId));
+  }
+  
+  async completeGame(gameId: number, score: number): Promise<void> {
+    await this.db.update(gameSessionsTable)
+      .set({ 
+        completed: true,
+        score: score 
+      })
+      .where(eq(gameSessionsTable.id, gameId));
+  }
+  
+  // Helper methods
+  private getNextGameTime(): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow.toISOString();
+  }
+}
+
+// In-memory storage fallback implementation
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private players: Map<number, Player>;
@@ -196,4 +410,21 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Create and export the storage instance
+// Use PostgreSQL if DATABASE_URL is available, otherwise fall back to memory storage
+let storageInstance: IStorage;
+
+try {
+  if (process.env.DATABASE_URL) {
+    storageInstance = new PostgresStorage();
+    console.log("Using PostgreSQL database storage");
+  } else {
+    throw new Error("DATABASE_URL not set");
+  }
+} catch (error) {
+  console.warn("Failed to initialize PostgreSQL storage, falling back to in-memory storage:", error);
+  storageInstance = new MemStorage();
+  console.log("Using in-memory storage");
+}
+
+export const storage = storageInstance;
