@@ -2,22 +2,27 @@ import { Player, FeedbackResponse } from "@shared/schema";
 import { getContinent, getPositionCategory } from "@/lib/utils";
 
 // Compare guessed player with answer player
+// Type-safe helper to convert potentially null string to undefined
+function nullToUndefined<T>(value: T | null): T | undefined {
+  return value === null ? undefined : value;
+}
+
 export function comparePlayers(guessedPlayer: Player, answerPlayer: Player): FeedbackResponse {
   const isCorrect = guessedPlayer.id === answerPlayer.id;
   
   // Get continent info
-  const guessedContinent = guessedPlayer.continent;
-  const answerContinent = answerPlayer.continent;
+  const guessedContinent = guessedPlayer.continent || 'Unknown';
+  const answerContinent = answerPlayer.continent || 'Unknown';
   const sameContinent = guessedContinent === answerContinent;
   
   // Get position category info
-  const guessedPositionCategory = guessedPlayer.positionCategory;
-  const answerPositionCategory = answerPlayer.positionCategory;
+  const guessedPositionCategory = guessedPlayer.positionCategory || 'Unknown';
+  const answerPositionCategory = answerPlayer.positionCategory || 'Unknown';
   const samePositionCategory = guessedPositionCategory === answerPositionCategory;
   
   // Get league info
-  const guessedLeague = guessedPlayer.league;
-  const answerLeague = answerPlayer.league;
+  const guessedLeague = guessedPlayer.league || 'Unknown';
+  const answerLeague = answerPlayer.league || 'Unknown';
   const sameLeague = guessedLeague === answerLeague;
   
   // Calculate age difference
@@ -44,7 +49,7 @@ export function comparePlayers(guessedPlayer: Player, answerPlayer: Player): Fee
     nationality: {
       status: isCorrect ? 'correct' : (sameContinent ? 'same_continent' : 'wrong'),
       value: isCorrect ? guessedPlayer.nationality : (sameContinent ? 'Same continent' : 'Wrong country'),
-      flag: isCorrect ? guessedPlayer.nationalityImageUrl : undefined,
+      flag: isCorrect ? nullToUndefined(guessedPlayer.nationalityImageUrl) : undefined,
     },
     position: {
       status: isCorrect ? 'correct' : (samePositionCategory ? 'same_category' : 'wrong'),
@@ -53,7 +58,7 @@ export function comparePlayers(guessedPlayer: Player, answerPlayer: Player): Fee
     club: {
       status: isCorrect ? 'correct' : (sameLeague ? 'same_league' : 'wrong'),
       value: guessedPlayer.club,
-      logo: isCorrect ? guessedPlayer.clubImageUrl : undefined,
+      logo: isCorrect ? nullToUndefined(guessedPlayer.clubImageUrl) : undefined,
     },
     age: {
       difference: ageDifference,
@@ -76,7 +81,7 @@ export function comparePlayers(guessedPlayer: Player, answerPlayer: Player): Fee
       name: guessedPlayer.name,
       nationality: guessedPlayer.nationality,
       club: guessedPlayer.club,
-      imageUrl: guessedPlayer.imageUrl,
+      imageUrl: nullToUndefined(guessedPlayer.imageUrl),
     },
     timestamp: new Date().toISOString(),
   };

@@ -18,7 +18,20 @@ export default function SearchBar() {
   // Fetch player search results
   const { data: searchResults, isLoading: isSearching } = useQuery<PlayerSearchResult[]>({
     queryKey: ['/api/players/search', searchQuery],
+    queryFn: async () => {
+      if (searchQuery.length < 3) return [];
+      console.log('Searching for:', searchQuery);
+      const response = await fetch(`/api/players/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) {
+        throw new Error('Failed to search players');
+      }
+      const data = await response.json();
+      console.log('Search results:', data);
+      return data;
+    },
     enabled: searchQuery.length > 2,
+    retry: 1,
+    retryDelay: 500
   });
 
   // Submit guess mutation
