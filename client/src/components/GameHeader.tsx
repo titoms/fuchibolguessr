@@ -10,6 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import LanguageSelector from "./LanguageSelector";
+import ThemeToggle from "./ThemeToggle";
 
 export default function GameHeader() {
   const { t } = useLanguage();
@@ -19,6 +20,7 @@ export default function GameHeader() {
       <div className="max-w-4xl mx-auto flex justify-between items-center">
         <h1 className="text-xl md:text-2xl font-bold">{t.gameName}</h1>
         <div className="flex gap-4 items-center">
+          <ThemeToggle />
           <LanguageSelector />
           <SettingsDialog />
           <HelpDialog />

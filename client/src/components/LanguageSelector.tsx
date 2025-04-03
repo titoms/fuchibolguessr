@@ -18,7 +18,7 @@ export default function LanguageSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 gap-1">
+        <Button variant="outline" size="sm" className="h-9 gap-1 bg-transparent text-white border-slate-500 hover:bg-slate-700 hover:text-white">
           <span className="text-lg">{currentLanguage?.flag}</span>
           <span className="hidden md:inline-block">{currentLanguage?.name}</span>
         </Button>

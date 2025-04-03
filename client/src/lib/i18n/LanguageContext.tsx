@@ -85,3 +85,9 @@ export function useLanguage() {
   }
   return context;
 }
+
+// Convenience hook to directly access translations
+export function useTranslation() {
+  const { t } = useLanguage();
+  return { t };
+}

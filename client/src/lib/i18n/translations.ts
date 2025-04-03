@@ -61,6 +61,11 @@ export interface Translation {
   rule5: string;
   closeButton: string;
   
+  // Theme toggle
+  themeToggle: {
+    toggleTheme: string;
+  };
+  
   // Game info component
   todaysChallenge: string;
   nextChallenge: string;
@@ -138,6 +143,10 @@ export const translations: Record<Language, Translation> = {
     rule5: 'You have 8 attempts to guess correctly.',
     closeButton: 'Close',
     
+    themeToggle: {
+      toggleTheme: 'Toggle dark/light mode',
+    },
+    
     // Game info component
     todaysChallenge: 'Today\'s Challenge',
     nextChallenge: 'Next challenge in',
@@ -214,6 +223,10 @@ export const translations: Record<Language, Translation> = {
     rule5: 'Vous avez 8 tentatives pour deviner correctement.',
     closeButton: 'Fermer',
     
+    themeToggle: {
+      toggleTheme: 'Basculer entre les modes clair/sombre',
+    },
+    
     // Game info component
     todaysChallenge: 'Le Défi du Jour',
     nextChallenge: 'Prochain défi dans',
@@ -289,6 +302,10 @@ export const translations: Record<Language, Translation> = {
     rule4: 'Las flechas indican si el jugador misterioso es más alto/bajo o comenzó antes/después.',
     rule5: 'Tienes 8 intentos para adivinar correctamente.',
     closeButton: 'Cerrar',
+    
+    themeToggle: {
+      toggleTheme: 'Cambiar entre modo claro/oscuro',
+    },
     
     // Game info component
     todaysChallenge: 'El Desafío de Hoy',
