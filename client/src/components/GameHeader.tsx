@@ -20,7 +20,6 @@ export default function GameHeader() {
       <div className="max-w-4xl mx-auto flex justify-between items-center">
         <h1 className="text-xl md:text-2xl font-bold">{t.gameName}</h1>
         <div className="flex gap-4 items-center">
-          <ThemeToggle />
           <LanguageSelector />
           <SettingsDialog />
           <HelpDialog />
