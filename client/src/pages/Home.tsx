@@ -6,9 +6,11 @@ import FeedbackContainer from "@/components/FeedbackContainer";
 import GameComplete from "@/components/GameComplete";
 import { useGameStore } from "@/store/gameStore";
 import { GameStateResponse } from "@shared/schema";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function Home() {
-  const { isCompleted, resetGame } = useGameStore();
+  const { isCompleted } = useGameStore();
+  const { t } = useLanguage();
 
   // Fetch game state when component mounts
   const { data: gameState, isLoading } = useQuery<GameStateResponse>({
@@ -26,6 +28,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+        <span className="ml-3">{t.loading}</span>
       </div>
     );
   }
@@ -45,7 +48,7 @@ export default function Home() {
       
       <footer className="bg-slate-100 py-4 px-6 border-t border-slate-200">
         <div className="max-w-4xl mx-auto text-center text-sm text-slate-500">
-          <p>© {new Date().getFullYear()} FootballGuesser. A daily football player guessing challenge.</p>
+          <p>© {new Date().getFullYear()} {t.gameName}</p>
         </div>
       </footer>
     </div>

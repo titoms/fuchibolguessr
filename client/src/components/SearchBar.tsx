@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { PlayerSearchResult } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { getCountryFlag } from "@/lib/i18n/translations";
 
 export default function SearchBar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,6 +16,7 @@ export default function SearchBar() {
   const { addGuess, isGuessing } = useGameStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   // Fetch player search results
   const { data: searchResults, isLoading: isSearching } = useQuery<PlayerSearchResult[]>({
@@ -47,7 +50,7 @@ export default function SearchBar() {
     },
     onError: (error) => {
       toast({
-        title: "Error submitting guess",
+        title: t.incorrectGuess,
         description: error.message,
         variant: "destructive",
       });
@@ -72,7 +75,7 @@ export default function SearchBar() {
       handlePlayerSelect(searchResults[0]);
     } else {
       toast({
-        title: "Invalid selection",
+        title: t.incorrectGuess,
         description: "Please select a player from the dropdown",
         variant: "destructive",
       });
@@ -106,7 +109,7 @@ export default function SearchBar() {
             ref={searchInputRef}
             type="text"
             className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent shadow-sm"
-            placeholder="Search for a football player..."
+            placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchActive(true)}
@@ -117,7 +120,7 @@ export default function SearchBar() {
             className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-accent text-white px-4 py-1 rounded-md hover:bg-accent/90 transition-colors"
             disabled={searchQuery.length < 3 || guessMutation.isPending || isGuessing}
           >
-            {guessMutation.isPending ? "..." : "Guess"}
+            {guessMutation.isPending ? t.loading : t.guessButton}
           </Button>
         </div>
       </form>
@@ -129,7 +132,7 @@ export default function SearchBar() {
           className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg border border-slate-200 max-h-60 overflow-auto"
         >
           {isSearching && (
-            <div className="px-4 py-2 text-slate-500 text-sm">Searching...</div>
+            <div className="px-4 py-2 text-slate-500 text-sm">{t.loading}</div>
           )}
           
           {!isSearching && searchResults && searchResults.length === 0 && (
@@ -151,7 +154,9 @@ export default function SearchBar() {
               )}
               <div>
                 <div className="font-medium">{player.name}</div>
-                <div className="text-xs text-slate-500">{player.club}, {player.nationality}</div>
+                <div className="text-xs text-slate-500">
+                  {player.club}, {getCountryFlag(player.nationality)} {player.nationality}
+                </div>
               </div>
             </div>
           ))}

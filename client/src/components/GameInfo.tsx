@@ -5,10 +5,12 @@ import { queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import SearchBar from "@/components/SearchBar";
 import { useGameStore } from "@/store/gameStore";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function GameInfo() {
   const { attempts, maxAttempts, continuousModeEnabled, isCompleted, enableContinuousMode } = useGameStore();
   const [countdown, setCountdown] = useState<string>("Loading...");
+  const { t } = useLanguage();
   
   // Determine if continuous mode should be offered (after 6 failed attempts)
   const showContinuousMode = attempts >= maxAttempts && !continuousModeEnabled && !isCompleted;
@@ -72,11 +74,11 @@ export default function GameInfo() {
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
         <div>
-          <h2 className="text-2xl font-bold mb-1">Today's Challenge</h2>
-          <p className="text-slate-600">Guess the football player in 6 tries or less</p>
+          <h2 className="text-2xl font-bold mb-1">{t.todaysChallenge}</h2>
+          <p className="text-slate-600">{t.rule1}</p>
         </div>
         <div className="flex flex-col items-end">
-          <div className="text-sm text-slate-500">Next challenge in</div>
+          <div className="text-sm text-slate-500">{t.nextChallenge}</div>
           <div className="text-lg font-semibold">{countdown}</div>
         </div>
       </div>
@@ -84,7 +86,7 @@ export default function GameInfo() {
       {/* Game Progress */}
       <div className="mb-6">
         <div className="flex justify-between mb-2">
-          <span className="text-sm font-medium">Attempts</span>
+          <span className="text-sm font-medium">{t.attempts}</span>
           <span className="text-sm font-medium">
             {continuousModeEnabled ? `${attempts}/∞` : `${attempts}/${maxAttempts}`}
           </span>
@@ -111,15 +113,15 @@ export default function GameInfo() {
         <div className="mt-4">
           <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <div>
-              <h3 className="font-medium text-amber-800">Out of attempts?</h3>
-              <p className="text-sm text-amber-700">Switch to continuous mode for unlimited tries</p>
+              <h3 className="font-medium text-amber-800">{t.outOfAttempts}</h3>
+              <p className="text-sm text-amber-700">{t.continuousModePrompt}</p>
             </div>
             <button 
               className="px-3 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors text-sm font-medium"
               onClick={handleContinuousModeEnable}
               disabled={continuousModeMutation.isPending}
             >
-              {continuousModeMutation.isPending ? 'Enabling...' : 'Continue Playing'}
+              {continuousModeMutation.isPending ? t.loading : t.continuePlaying}
             </button>
           </div>
         </div>
