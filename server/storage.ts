@@ -38,7 +38,8 @@ export interface IStorage {
   searchPlayers(query: string): Promise<Player[]>;
   
   // Game session methods
-  getOrCreateGameState(): Promise<GameStateResponse>;
+  getOrCreateGameState(sessionId?: string): Promise<GameStateResponse>;
+  getSessionGameState(sessionId: string): Promise<GameStateResponse | undefined>;
   recordGuess(gameId: number, feedback: FeedbackResponse): Promise<void>;
   enableContinuousMode(gameId: number): Promise<void>;
   completeGame(gameId: number, score: number): Promise<void>;
@@ -147,7 +148,7 @@ export class PostgresStorage implements IStorage {
   }
   
   // Game session methods
-  async getOrCreateGameState(): Promise<GameStateResponse> {
+  async getOrCreateGameState(sessionId?: string): Promise<GameStateResponse> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -180,10 +181,54 @@ export class PostgresStorage implements IStorage {
           date: today,
           continuousModeEnabled: false,
           completed: false,
+          // If we have a session ID, store it with the game
+          sessionId: sessionId || null
         })
         .returning();
       
       console.log(`Created new game with ID ${todayGame.id} for today with player ${dailyPlayer.name}`);
+    } 
+    // If we have a session ID but the game doesn't, update it
+    else if (sessionId && !todayGame.sessionId) {
+      // Create a clone of the game with a session ID
+      const [newSessionGame] = await this.db.insert(gameSessionsTable)
+        .values({
+          dailyPlayerId: todayGame.dailyPlayerId,
+          date: today,
+          continuousModeEnabled: false,
+          completed: false,
+          sessionId: sessionId
+        })
+        .returning();
+      
+      todayGame = newSessionGame;
+      console.log(`Created new session game with ID ${todayGame.id} for session ${sessionId}`);
+    }
+    // If we have a session ID, check if there's already a game for this session
+    else if (sessionId) {
+      const sessionGames = await this.db.select()
+        .from(gameSessionsTable)
+        .where(eq(gameSessionsTable.sessionId, sessionId))
+        .orderBy(desc(gameSessionsTable.id))
+        .limit(1);
+      
+      if (sessionGames.length > 0) {
+        todayGame = sessionGames[0];
+      } else {
+        // Create a clone of the game with a session ID
+        const [newSessionGame] = await this.db.insert(gameSessionsTable)
+          .values({
+            dailyPlayerId: todayGame.dailyPlayerId,
+            date: today,
+            continuousModeEnabled: false,
+            completed: false,
+            sessionId: sessionId
+          })
+          .returning();
+        
+        todayGame = newSessionGame;
+        console.log(`Created new session game with ID ${todayGame.id} for session ${sessionId}`);
+      }
     }
     
     // Get all guesses for this game
@@ -209,6 +254,50 @@ export class PostgresStorage implements IStorage {
       guesses,
       score: todayGame.score || undefined,
       nextGameTime: todayGame.completed ? this.getNextGameTime() : undefined,
+    };
+  }
+  
+  async getSessionGameState(sessionId: string): Promise<GameStateResponse | undefined> {
+    if (!sessionId) {
+      return undefined;
+    }
+    
+    // Find the session's game
+    const sessionGames = await this.db.select()
+      .from(gameSessionsTable)
+      .where(eq(gameSessionsTable.sessionId, sessionId))
+      .orderBy(desc(gameSessionsTable.id))
+      .limit(1);
+    
+    if (sessionGames.length === 0) {
+      return undefined;
+    }
+    
+    const game = sessionGames[0];
+    
+    // Get all guesses for this game
+    const guessRecords = await this.db.select()
+      .from(guessesTable)
+      .where(eq(guessesTable.gameSessionId, game.id))
+      .orderBy(guessesTable.timestamp);
+    
+    // Parse the JSON feedback data
+    const guesses: FeedbackResponse[] = guessRecords.map((record: { feedbackData: any }) => 
+      typeof record.feedbackData === 'string' 
+        ? JSON.parse(record.feedbackData) 
+        : record.feedbackData
+    );
+    
+    return {
+      gameId: game.id,
+      dailyPlayerId: game.dailyPlayerId,
+      attempts: guesses.length,
+      maxAttempts: 6,
+      continuousModeEnabled: game.continuousModeEnabled,
+      completed: game.completed,
+      guesses,
+      score: game.score || undefined,
+      nextGameTime: game.completed ? this.getNextGameTime() : undefined,
     };
   }
   
@@ -322,12 +411,64 @@ export class MemStorage implements IStorage {
   }
   
   // Game session methods
-  async getOrCreateGameState(): Promise<GameStateResponse> {
+  async getOrCreateGameState(sessionId?: string): Promise<GameStateResponse> {
     const today = new Date();
     
-    // Check if we have today's game already
+    // If we have a session ID, check for a session-specific game
+    if (sessionId) {
+      // Look for a game with this session ID
+      const sessionGame = Array.from(this.games.values()).find(
+        (game) => game.sessionId === sessionId && isSameDay(new Date(game.date), today)
+      );
+      
+      if (sessionGame) {
+        const guesses = this.guesses.get(sessionGame.id) || [];
+        
+        return {
+          gameId: sessionGame.id,
+          dailyPlayerId: sessionGame.dailyPlayerId,
+          attempts: guesses.length,
+          maxAttempts: 6,
+          continuousModeEnabled: sessionGame.continuousModeEnabled,
+          completed: sessionGame.completed,
+          guesses: guesses,
+          score: sessionGame.score,
+          nextGameTime: sessionGame.completed ? this.getNextGameTime() : undefined,
+        };
+      }
+    }
+    
+    // Check if we have today's game already (no session)
     if (this.todayGame && isSameDay(new Date(this.todayGame.date), today)) {
-      // Return existing game state
+      // If we have a session ID, create a session-specific copy of today's game
+      if (sessionId) {
+        const gameId = this.currentGameId++;
+        const newSessionGame = {
+          id: gameId,
+          dailyPlayerId: this.todayGame.dailyPlayerId,
+          date: today,
+          continuousModeEnabled: false,
+          completed: false,
+          score: null,
+          sessionId: sessionId
+        };
+        
+        this.games.set(gameId, newSessionGame);
+        this.guesses.set(gameId, []);
+        
+        return {
+          gameId,
+          dailyPlayerId: newSessionGame.dailyPlayerId,
+          attempts: 0,
+          maxAttempts: 6,
+          continuousModeEnabled: false,
+          completed: false,
+          guesses: [],
+          nextGameTime: undefined,
+        };
+      }
+      
+      // Return existing game state (no session)
       const guesses = this.guesses.get(this.todayGame.id) || [];
       
       return {
@@ -339,7 +480,7 @@ export class MemStorage implements IStorage {
         completed: this.todayGame.completed,
         guesses: guesses,
         score: this.todayGame.score,
-        nextGameTime: this.getNextGameTime(),
+        nextGameTime: this.todayGame.completed ? this.getNextGameTime() : undefined,
       };
     }
     
@@ -356,11 +497,16 @@ export class MemStorage implements IStorage {
       continuousModeEnabled: false,
       completed: false,
       score: null,
+      sessionId: sessionId || null
     };
     
     this.games.set(gameId, newGame);
     this.guesses.set(gameId, []);
-    this.todayGame = newGame;
+    
+    // Only set as todayGame if not session-specific
+    if (!sessionId) {
+      this.todayGame = newGame;
+    }
     
     return {
       gameId,
@@ -370,7 +516,36 @@ export class MemStorage implements IStorage {
       continuousModeEnabled: false,
       completed: false,
       guesses: [],
-      nextGameTime: this.getNextGameTime(),
+      nextGameTime: undefined,
+    };
+  }
+  
+  async getSessionGameState(sessionId: string): Promise<GameStateResponse | undefined> {
+    if (!sessionId) {
+      return undefined;
+    }
+    
+    // Find a game for this session
+    const sessionGame = Array.from(this.games.values()).find(
+      (game) => game.sessionId === sessionId
+    );
+    
+    if (!sessionGame) {
+      return undefined;
+    }
+    
+    const guesses = this.guesses.get(sessionGame.id) || [];
+    
+    return {
+      gameId: sessionGame.id,
+      dailyPlayerId: sessionGame.dailyPlayerId,
+      attempts: guesses.length,
+      maxAttempts: 6,
+      continuousModeEnabled: sessionGame.continuousModeEnabled,
+      completed: sessionGame.completed,
+      guesses: guesses,
+      score: sessionGame.score,
+      nextGameTime: sessionGame.completed ? this.getNextGameTime() : undefined,
     };
   }
   

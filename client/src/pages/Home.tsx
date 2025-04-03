@@ -5,18 +5,19 @@ import GameInfo from "@/components/GameInfo";
 import FeedbackContainer from "@/components/FeedbackContainer";
 import GameComplete from "@/components/GameComplete";
 import { useGameStore } from "@/store/gameStore";
+import { GameStateResponse } from "@shared/schema";
 
 export default function Home() {
   const { isCompleted, resetGame } = useGameStore();
 
   // Fetch game state when component mounts
-  const { data: gameState, isLoading } = useQuery({
+  const { data: gameState, isLoading } = useQuery<GameStateResponse>({
     queryKey: ["/api/game/state"],
   });
 
   // Initialize game state from API
   useEffect(() => {
-    if (gameState) {
+    if (gameState && 'gameId' in gameState && 'attempts' in gameState && 'guesses' in gameState) {
       useGameStore.getState().initializeState(gameState);
     }
   }, [gameState]);

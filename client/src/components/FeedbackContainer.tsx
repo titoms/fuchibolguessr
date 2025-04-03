@@ -74,9 +74,15 @@ function GuessCard({ guess, index }: GuessCardProps) {
         <FeedbackItem 
           title="Nationality"
           status={guess.nationality.status}
-          value={guess.nationality.status === "correct" && guess.nationality.flag 
-            ? <img src={guess.nationality.flag} alt={guess.nationality.value} className="w-5 h-5 rounded-full object-cover" /> 
-            : guess.nationality.value
+          value={
+            <div className="flex items-center gap-1">
+              {guess.nationality.flag ? (
+                <img src={guess.nationality.flag} alt={guess.nationality.value} className="w-5 h-5 rounded-full object-cover border border-gray-300" />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-xs">🏳️</div>
+              )}
+              <span>{guess.nationality.value}</span>
+            </div>
           }
         />
         
@@ -91,9 +97,15 @@ function GuessCard({ guess, index }: GuessCardProps) {
         <FeedbackItem 
           title="Current club"
           status={guess.club.status}
-          value={guess.club.status === "correct" && guess.club.logo 
-            ? <img src={guess.club.logo} alt={guess.club.value} className="w-5 h-5 rounded-full object-cover" /> 
-            : guess.club.value
+          value={
+            <div className="flex items-center gap-1">
+              {guess.club.logo ? (
+                <img src={guess.club.logo} alt={guess.club.value} className="w-5 h-5 rounded-full object-cover border border-gray-300" />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-xs">⚽</div>
+              )}
+              <span>{guess.club.value}</span>
+            </div>
           }
         />
         

@@ -44,6 +44,7 @@ export const gameSessions = pgTable("game_sessions", {
   continuousModeEnabled: boolean("continuous_mode_enabled").notNull().default(false),
   completed: boolean("completed").notNull().default(false),
   score: integer("score"),
+  sessionId: text("session_id"),
 });
 
 // Guesses table - stores player guesses for each game

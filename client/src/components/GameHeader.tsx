@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, HelpCircle, SliderIcon } from "lucide-react";
+import { Settings, HelpCircle, SlidersIcon } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
