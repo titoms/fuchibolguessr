@@ -201,6 +201,7 @@ export class PostgresStorage implements IStorage {
     
     return {
       gameId: todayGame.id,
+      dailyPlayerId: todayGame.dailyPlayerId,
       attempts: guesses.length,
       maxAttempts: 6,
       continuousModeEnabled: todayGame.continuousModeEnabled,
@@ -212,11 +213,15 @@ export class PostgresStorage implements IStorage {
   }
   
   async recordGuess(gameId: number, feedback: FeedbackResponse): Promise<void> {
+    // Clean the feedback object to replace undefined values with null
+    // PostgreSQL doesn't accept undefined values in JSON
+    const cleanedFeedback = JSON.parse(JSON.stringify(feedback));
+    
     // Insert guess record with JSON feedback data
     await this.db.insert(guessesTable)
       .values({
         gameSessionId: gameId,
-        feedbackData: feedback, // JSON type column
+        feedbackData: cleanedFeedback, // JSON type column
         timestamp: new Date(),
       });
   }
@@ -327,6 +332,7 @@ export class MemStorage implements IStorage {
       
       return {
         gameId: this.todayGame.id,
+        dailyPlayerId: this.todayGame.dailyPlayerId,
         attempts: guesses.length,
         maxAttempts: 6,
         continuousModeEnabled: this.todayGame.continuousModeEnabled,
@@ -358,6 +364,7 @@ export class MemStorage implements IStorage {
     
     return {
       gameId,
+      dailyPlayerId: dailyPlayer.id,
       attempts: 0,
       maxAttempts: 6,
       continuousModeEnabled: false,

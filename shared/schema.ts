@@ -132,6 +132,7 @@ export type FeedbackResponse = z.infer<typeof feedbackSchema>;
 // Game state schema for API communication
 export const gameStateSchema = z.object({
   gameId: z.number(),
+  dailyPlayerId: z.number(),
   attempts: z.number(),
   maxAttempts: z.number(),
   continuousModeEnabled: z.boolean(),

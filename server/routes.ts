@@ -101,7 +101,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid guess data", errors: error.errors });
       }
       
-      res.status(500).json({ message: "Failed to process guess" });
+      res.status(500).json({ 
+        message: "Failed to process guess",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
