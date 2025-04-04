@@ -52,18 +52,26 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
 
-  // Set language and save to localStorage
-  const setLanguage = (newLanguage: Language) => {
-    console.log('Setting language to:', newLanguage);
-    setLanguageState(newLanguage);
-    localStorage.setItem('language', newLanguage);
-  };
-
-  // Update document language attribute when language changes
   useEffect(() => {
-    document.documentElement.lang = language;
-    console.log('Language changed to:', language, 'Translations:', translations[language]);
-  }, [language]);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        const newLanguage = e.newValue as Language;
+        if (Object.keys(translations).includes(newLanguage)) {
+          setLanguageState(newLanguage);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const setLanguage = (newLanguage: Language) => {
+    if (Object.keys(translations).includes(newLanguage)) {
+      localStorage.setItem('language', newLanguage);
+      setLanguageState(newLanguage);
+    }
+  };
 
   return (
     <LanguageContext.Provider 

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getCountryFlag } from "@/lib/i18n/translations";
+import { FlagImage } from "@/lib/i18n/translations";
 
 export default function SearchBar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,8 +118,9 @@ export default function SearchBar() {
           />
           <Button 
             type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-accent text-white px-4 py-1 rounded-md hover:bg-accent/90 transition-colors"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-md hover:bg-primary/90 transition-colors"
             disabled={searchQuery.length < 3 || guessMutation.isPending || isGuessing}
+            variant="default"
           >
             {guessMutation.isPending ? t.loading : t.guessButton}
           </Button>
@@ -154,8 +156,8 @@ export default function SearchBar() {
               )}
               <div>
                 <div className="font-medium">{player.name}</div>
-                <div className="text-xs text-slate-500">
-                  {player.club}, {getCountryFlag(player.nationality)} {player.nationality}
+                <div className="text-xs text-slate-500 flex items-center gap-1">
+                  {player.club} <FlagImage countryName={player.nationality} /> {player.nationality}
                 </div>
               </div>
             </div>

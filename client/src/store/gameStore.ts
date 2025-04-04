@@ -11,6 +11,7 @@ interface GameState {
   score: number | null;
   nextGameTime: string | null;
   isGuessing: boolean;
+  guessedPlayers: Set<number>;
   
   // Actions
   initializeState: (state: GameStateResponse) => void;
@@ -18,6 +19,7 @@ interface GameState {
   enableContinuousMode: () => void;
   resetGame: () => void;
   setGuessing: (isGuessing: boolean) => void;
+  regenerateGame: () => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -30,6 +32,7 @@ export const useGameStore = create<GameState>((set) => ({
   score: null,
   nextGameTime: null,
   isGuessing: false,
+  guessedPlayers: new Set(),
   
   initializeState: (state) => set({
     gameId: state.gameId,
@@ -40,29 +43,51 @@ export const useGameStore = create<GameState>((set) => ({
     guesses: state.guesses,
     score: state.score || null,
     nextGameTime: state.nextGameTime || null,
+    guessedPlayers: new Set(state.guesses.map(guess => guess.guessedPlayer.id)),
   }),
   
   addGuess: (guess) => set((state) => {
+    // Prevent guessing the same player again
+    if (state.guessedPlayers.has(guess.guessedPlayer.id)) {
+      return state;
+    }
+    
     const newGuesses = [...state.guesses, guess];
     const isCompleted = guess.correct;
+    const newGuessedPlayers = new Set(state.guessedPlayers);
+    newGuessedPlayers.add(guess.guessedPlayer.id);
     
     return {
       guesses: newGuesses,
       attempts: state.attempts + 1,
       isCompleted,
       isGuessing: false,
+      guessedPlayers: newGuessedPlayers,
     };
   }),
   
   enableContinuousMode: () => set({ continuousModeEnabled: true }),
   
-  resetGame: () => set({
+  resetGame: () => set((state) => ({
+    gameId: null,
     attempts: 0,
     continuousModeEnabled: false,
     isCompleted: false,
     guesses: [],
     score: null,
-  }),
+    nextGameTime: null,
+    guessedPlayers: new Set(),
+    isGuessing: false,
+  })),
+  
+  regenerateGame: () => set((state) => ({
+    attempts: 0,
+    isCompleted: false,
+    guesses: [],
+    score: null,
+    guessedPlayers: new Set(),
+    isGuessing: false,
+  })),
   
   setGuessing: (isGuessing) => set({ isGuessing }),
 }));

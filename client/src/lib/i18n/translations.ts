@@ -86,6 +86,10 @@ export interface Translation {
   failedToShare: string;
   couldNotShare: string;
   comeBackTomorrow: string;
+  
+  // New buttons
+  regenerateGame: string;
+  newGame: string;
 }
 
 export const translations: Record<Language, Translation> = {
@@ -166,7 +170,11 @@ export const translations: Record<Language, Translation> = {
     shareWithFriends: 'Share your result with friends!',
     failedToShare: 'Failed to share',
     couldNotShare: 'Could not share your result',
-    comeBackTomorrow: 'Come Back Tomorrow'
+    comeBackTomorrow: 'Come Back Tomorrow',
+    
+    // New buttons
+    regenerateGame: 'Regenerate Game',
+    newGame: 'New Game',
   },
   
   // French translations
@@ -246,7 +254,11 @@ export const translations: Record<Language, Translation> = {
     shareWithFriends: 'Partagez votre résultat avec vos amis !',
     failedToShare: 'Échec du partage',
     couldNotShare: 'Impossible de partager votre résultat',
-    comeBackTomorrow: 'Revenir Demain'
+    comeBackTomorrow: 'Revenir Demain',
+    
+    // New buttons
+    regenerateGame: 'Regénérer Partie',
+    newGame: 'Nouvelle Partie',
   },
   
   // Spanish translations
@@ -326,40 +338,122 @@ export const translations: Record<Language, Translation> = {
     shareWithFriends: '¡Comparte tu resultado con amigos!',
     failedToShare: 'Error al compartir',
     couldNotShare: 'No se pudo compartir tu resultado',
-    comeBackTomorrow: 'Vuelve Mañana'
+    comeBackTomorrow: 'Vuelve Mañana',
+    
+    // New buttons
+    regenerateGame: 'Regenerar Juego',
+    newGame: 'Nuevo Juego',
   }
 };
 
-// Utility function to get country flag emoji
-export function getCountryFlag(countryCode: string): string {
-  const flagEmojis: Record<string, string> = {
-    'Argentina': '🇦🇷',
-    'Brazil': '🇧🇷',
-    'England': '🇬🇧',
-    'France': '🇫🇷',
-    'Germany': '🇩🇪',
-    'Italy': '🇮🇹',
-    'Netherlands': '🇳🇱',
-    'Norway': '🇳🇴',
-    'Poland': '🇵🇱',
-    'Portugal': '🇵🇹',
-    'Spain': '🇪🇸',
-    'Belgium': '🇧🇪',
-    'Croatia': '🇭🇷',
-    'Egypt': '🇪🇬',
-    'Senegal': '🇸🇳',
-    'Uruguay': '🇺🇾',
-    'Sweden': '🇸🇪',
-    'Denmark': '🇩🇰',
-    'Switzerland': '🇨🇭',
-    'Japan': '🇯🇵',
-    'South Korea': '🇰🇷',
-    'USA': '🇺🇸',
-    'Canada': '🇨🇦',
-    'Mexico': '🇲🇽',
-    'Australia': '🇦🇺',
-    // Add more countries as needed
-  };
+// Country code mapping for flag images
+const countryCodeMap: Record<string, string> = {
+  'Argentina': 'ar',
+  'Brazil': 'br',
+  'England': 'gb-eng',
+  'United Kingdom': 'gb',
+  'Great Britain': 'gb',
+  'France': 'fr',
+  'Germany': 'de',
+  'Italy': 'it',
+  'Netherlands': 'nl',
+  'Norway': 'no',
+  'Poland': 'pl',
+  'Portugal': 'pt',
+  'Spain': 'es',
+  'Belgium': 'be',
+  'Croatia': 'hr',
+  'Egypt': 'eg',
+  'Senegal': 'sn',
+  'Uruguay': 'uy',
+  'Sweden': 'se',
+  'Denmark': 'dk',
+  'Switzerland': 'ch',
+  'Japan': 'jp',
+  'South Korea': 'kr',
+  'USA': 'us',
+  'United States': 'us',
+  'Canada': 'ca',
+  'Mexico': 'mx',
+  'Australia': 'au',
+  'Wales': 'gb-wls',
+  'Scotland': 'gb-sct',
+  'Northern Ireland': 'gb-nir',
+  'Ireland': 'ie',
+  'Morocco': 'ma',
+  'Algeria': 'dz',
+  'Tunisia': 'tn',
+  'Ghana': 'gh',
+  'Nigeria': 'ng',
+  'Cameroon': 'cm',
+  'Ivory Coast': 'ci',
+  'South Africa': 'za',
+  'China': 'cn',
+  'India': 'in',
+  'Russia': 'ru',
+  'Ukraine': 'ua',
+  'Turkey': 'tr',
+  'Greece': 'gr',
+  'Austria': 'at',
+  'Hungary': 'hu',
+  'Czech Republic': 'cz',
+  'Romania': 'ro',
+  'Bulgaria': 'bg',
+  'Serbia': 'rs',
+  'Bosnia': 'ba',
+  'Bosnia and Herzegovina': 'ba',
+  'Albania': 'al',
+  'North Macedonia': 'mk',
+  'Macedonia': 'mk',
+  'Slovenia': 'si',
+  'Slovakia': 'sk',
+  'Finland': 'fi',
+  'Iceland': 'is',
+  'New Zealand': 'nz',
+  // Add more countries as needed
+};
+
+// Utility function to get country flag image URL
+export function getCountryFlag(countryName: string): string {
+  const countryCode = countryCodeMap[countryName];
+  return countryCode ? `https://flagcdn.com/w20/${countryCode.toLowerCase()}.png` : '';
+}
+
+import React from 'react';
+
+export function FlagImage({ countryName }: { countryName: string }): React.ReactElement {
+  const flagUrl = getCountryFlag(countryName);
   
-  return flagEmojis[countryCode] || '🏳️';
+  if (!flagUrl) {
+    return React.createElement('span', { className: 'text-slate-500' }, 'No Flag');
+  }
+  
+  return React.createElement('img', {
+    src: flagUrl,
+    alt: `${countryName} flag`,
+    className: 'w-5 h-3.5 inline-block object-cover rounded-sm shadow-sm',
+    onError: (e: React.SyntheticEvent<HTMLImageElement>) => {
+      (e.target as HTMLImageElement).style.display = 'none';
+    }
+  });
+}
+
+// Function to render flag image with proper styling
+export function CountryFlag({ countryName, size = 'small' }: { countryName: string, size?: 'small' | 'medium' | 'large' }) {
+  const flagUrl = getCountryFlag(countryName);
+  
+  // If it's the default flag emoji, return it directly
+  if (flagUrl === '🏳️') {
+    return flagUrl;
+  }
+  
+  // Size mapping
+  const sizeClass = {
+    small: 'w-5 h-3.5',
+    medium: 'w-6 h-4.5',
+    large: 'w-8 h-6'
+  }[size];
+  
+  // Return an img element with proper styling
+  return `<img src="${flagUrl}" alt="${countryName} flag" class="${sizeClass} inline-block object-cover rounded-sm shadow-sm" />`;
 }

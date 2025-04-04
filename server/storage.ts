@@ -597,10 +597,14 @@ export class MemStorage implements IStorage {
 let storageInstance: IStorage;
 
 try {
+  // Ensure environment variables are loaded
   if (process.env.DATABASE_URL) {
     storageInstance = new PostgresStorage();
     console.log("Using PostgreSQL database storage");
   } else {
+    console.warn("DATABASE_URL not set in environment variables");
+    console.log("Current environment variables:", Object.keys(process.env));
+    // In ES modules, we can't use require for dotenv
     throw new Error("DATABASE_URL not set");
   }
 } catch (error) {
