@@ -1,5 +1,6 @@
 import { Player, FeedbackResponse } from "@shared/schema";
 import { getContinent, getPositionCategory } from "@/lib/utils";
+import { getCountryFlag } from "@/lib/i18n/translations";
 
 // Compare guessed player with answer player
 // Type-safe helper to convert potentially null string to undefined
@@ -48,8 +49,8 @@ export function comparePlayers(guessedPlayer: Player, answerPlayer: Player): Fee
     correct: isCorrect,
     nationality: {
       status: isCorrect ? 'correct' : (sameContinent ? 'same_continent' : 'wrong'),
-      value: isCorrect ? guessedPlayer.nationality : (sameContinent ? 'Same continent' : 'Wrong country'),
-      flag: isCorrect ? nullToUndefined(guessedPlayer.nationalityImageUrl) : undefined,
+      value: guessedPlayer.nationality,
+      flag: getCountryFlag(guessedPlayer.nationality),
     },
     position: {
       status: isCorrect ? 'correct' : (samePositionCategory ? 'same_category' : 'wrong'),

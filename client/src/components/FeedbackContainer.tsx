@@ -1,6 +1,8 @@
 import { useGameStore } from "@/store/gameStore";
 import { formatDistanceToNow } from "date-fns";
 import { CheckIcon, XIcon, ChevronUpIcon, ChevronDownIcon } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { getCountryFlag } from "@/lib/i18n/translations";
 
 export default function FeedbackContainer() {
   const { guesses } = useGameStore();
@@ -32,6 +34,7 @@ interface GuessCardProps {
 
 function GuessCard({ guess, index }: GuessCardProps) {
   const isCorrect = guess.correct;
+  const { t } = useLanguage();
   
   return (
     <div className={`p-3 rounded-lg shadow-md guess-result-animate ${
@@ -41,7 +44,9 @@ function GuessCard({ guess, index }: GuessCardProps) {
     }`}>
       <div className="flex justify-between items-center mb-2">
         <h3 className={`font-semibold text-base ${isCorrect ? "text-green-800" : "text-red-800"}`}>
-          {isCorrect ? `Guess #${index + 1} - Correct!` : `Guess #${index + 1}`}
+          {isCorrect 
+            ? `${t.attempts} #${index + 1} - ${t.correctGuess}` 
+            : `${t.attempts} #${index + 1}`}
         </h3>
         <span className="text-slate-500 text-xs">
           {formatTimeAgo(guess.timestamp)}
@@ -62,8 +67,12 @@ function GuessCard({ guess, index }: GuessCardProps) {
         )}
         <div>
           <div className="font-bold text-sm">{guess.guessedPlayer.name}</div>
-          <div className="text-xs text-slate-600">
-            {guess.guessedPlayer.club}, {guess.guessedPlayer.nationality}
+          <div className="text-xs text-slate-600 flex items-center gap-1">
+            {guess.guessedPlayer.club}, 
+            <span className="inline-flex items-center">
+              <span className="mr-1">{getCountryFlag(guess.guessedPlayer.nationality)}</span>
+              {guess.guessedPlayer.nationality}
+            </span>
           </div>
         </div>
       </div>
@@ -72,15 +81,13 @@ function GuessCard({ guess, index }: GuessCardProps) {
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {/* Nationality */}
         <FeedbackItem 
-          title="Nationality"
+          title={t.nationality}
           status={guess.nationality.status}
           value={
             <div className="flex items-center gap-1">
-              {guess.nationality.flag ? (
-                <img src={guess.nationality.flag} alt={guess.nationality.value} className="w-5 h-5 rounded-full object-cover border border-gray-300" />
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-xs">🏳️</div>
-              )}
+              <span className="text-lg">
+                {getCountryFlag(guess.nationality.value) || '🏳️'}
+              </span>
               <span>{guess.nationality.value}</span>
             </div>
           }
@@ -88,14 +95,14 @@ function GuessCard({ guess, index }: GuessCardProps) {
         
         {/* Position */}
         <FeedbackItem 
-          title="Position"
+          title={t.position}
           status={guess.position.status}
           value={guess.position.value}
         />
         
         {/* Current club */}
         <FeedbackItem 
-          title="Current club"
+          title={t.club}
           status={guess.club.status}
           value={
             <div className="flex items-center gap-1">
@@ -111,33 +118,33 @@ function GuessCard({ guess, index }: GuessCardProps) {
         
         {/* Age */}
         <FeedbackItem 
-          title="Age"
+          title={t.age}
           status={guess.age.difference === 0 ? "correct" : "wrong"}
           value={guess.age.difference === 0 
             ? guess.age.value 
             : (guess.age.difference > 0 
                 ? `+${guess.age.difference}` 
                 : `${guess.age.difference}`
-              ) + " years"
+              ) + " " + t.years
           }
         />
         
         {/* Height */}
         <FeedbackItem 
-          title="Height"
+          title={t.height}
           status={guess.height.status}
           value={guess.height.status === "correct" 
-            ? `${guess.height.value} cm` 
+            ? `${guess.height.value} ${t.cm}` 
             : guess.height.status === "taller" 
-              ? "Taller" 
-              : "Shorter"
+              ? t.taller 
+              : t.shorter
           }
           useHeightIcon={guess.height.status !== "correct"}
         />
         
         {/* Dominant foot */}
         <FeedbackItem 
-          title="Dominant foot"
+          title={t.dominantFoot}
           status={guess.dominantFoot.status}
           value={guess.dominantFoot.value}
         />
@@ -154,6 +161,9 @@ interface FeedbackItemProps {
 }
 
 function FeedbackItem({ title, status, value, useHeightIcon = false }: FeedbackItemProps) {
+  // Get translations
+  const { t } = useLanguage();
+  
   // Determine the status icon and color
   let icon;
   let bgColor = "bg-slate-300";
