@@ -68,26 +68,52 @@ export const useGameStore = create<GameState>((set) => ({
   
   enableContinuousMode: () => set({ continuousModeEnabled: true }),
   
-  resetGame: () => set((state) => ({
-    gameId: null,
-    attempts: 0,
-    continuousModeEnabled: false,
-    isCompleted: false,
-    guesses: [],
-    score: null,
-    nextGameTime: null,
-    guessedPlayers: new Set(),
-    isGuessing: false,
-  })),
+  resetGame: () => {
+    console.log('GameStore: Resetting game');
+    set((state) => {
+      console.log('GameStore: Before reset:', {
+        gameId: state.gameId,
+        attempts: state.attempts,
+        isCompleted: state.isCompleted,
+        guesses: state.guesses.length,
+        guessedPlayers: state.guessedPlayers.size
+      });
+      
+      return {
+        gameId: null,
+        attempts: 0,
+        continuousModeEnabled: false,
+        isCompleted: false,
+        guesses: [],
+        score: null,
+        nextGameTime: null,
+        guessedPlayers: new Set(),
+        isGuessing: false,
+      };
+    });
+  },
   
-  regenerateGame: () => set((state) => ({
-    attempts: 0,
-    isCompleted: false,
-    guesses: [],
-    score: null,
-    guessedPlayers: new Set(),
-    isGuessing: false,
-  })),
+  regenerateGame: () => {
+    console.log('GameStore: Regenerating game');
+    set((state) => {
+      console.log('GameStore: Before reset:', {
+        gameId: state.gameId,
+        attempts: state.attempts,
+        isCompleted: state.isCompleted,
+        guesses: state.guesses.length,
+        guessedPlayers: state.guessedPlayers.size
+      });
+      
+      return {
+        attempts: 0,
+        isCompleted: false,
+        guesses: [],
+        score: null,
+        guessedPlayers: new Set(),
+        isGuessing: false,
+      };
+    });
+  },
   
   setGuessing: (isGuessing) => set({ isGuessing }),
 }));

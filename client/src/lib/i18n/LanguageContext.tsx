@@ -1,102 +1,90 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Language, Translation, translations } from './translations';
 
-// Define language options type
 type LanguageOption = {
   code: Language;
   name: string;
   flag: string;
 };
 
-// Interface for the language context
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
   t: Translation;
   availableLanguages: LanguageOption[];
+  isInitialized: boolean;
 }
 
-// Define available languages
-const availableLanguageOptions: LanguageOption[] = [
-  { code: 'en', name: translations.en.languageName, flag: translations.en.flag },
-  { code: 'fr', name: translations.fr.languageName, flag: translations.fr.flag },
-  { code: 'es', name: translations.es.languageName, flag: translations.es.flag },
-];
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Create the language context with default values
-const LanguageContext = createContext<LanguageContextType>({
-  language: 'en',
-  setLanguage: () => {},
-  t: translations.en,
-  availableLanguages: availableLanguageOptions,
-});
-
-// Language provider component
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // Get the initial language
-  const getInitialLanguage = (): Language => {
-    const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage && Object.keys(translations).includes(savedLanguage)) {
-      return savedLanguage;
-    }
-    
-    // Try to detect browser language
-    const browserLang = navigator.language.split('-')[0];
-    if (browserLang && Object.keys(translations).includes(browserLang)) {
-      return browserLang as Language;
-    }
-    
-    // Default to English
-    return 'en';
-  };
-
-  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [language, setLanguageState] = useState<Language>('en');
 
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'language') {
-        const newLanguage = e.newValue as Language;
-        if (Object.keys(translations).includes(newLanguage)) {
-          setLanguageState(newLanguage);
-        }
+    // Initialize language from localStorage or browser
+    const savedLanguage = localStorage.getItem('language');
+    const browserLang = navigator.language.split('-')[0];
+    
+    const initialLanguage = 
+      savedLanguage && savedLanguage in translations ? savedLanguage as Language :
+      browserLang in translations ? browserLang as Language : 'en';
+    
+    setLanguageState(initialLanguage);
+    setIsInitialized(true);
+    
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'language' && e.newValue && e.newValue in translations) {
+        setLanguageState(e.newValue as Language);
       }
     };
     
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
 
-  const setLanguage = (newLanguage: Language) => {
-    if (Object.keys(translations).includes(newLanguage)) {
+  const availableLanguages = useMemo<LanguageOption[]>(() => {
+    return Object.entries(translations).map(([code, trans]) => ({
+      code: code as Language,
+      name: trans.languageName,
+      flag: trans.flag
+    }));
+  }, []);
+
+  const setLanguage = useCallback((newLanguage: Language) => {
+    if (newLanguage in translations) {
       localStorage.setItem('language', newLanguage);
       setLanguageState(newLanguage);
     }
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    language,
+    setLanguage,
+    t: translations[language],
+    availableLanguages,
+    isInitialized
+  }), [language, setLanguage, availableLanguages, isInitialized]);
+
+  if (!isInitialized) {
+    return null; // Or a loading spinner
+  }
 
   return (
-    <LanguageContext.Provider 
-      value={{ 
-        language, 
-        setLanguage, 
-        t: translations[language],
-        availableLanguages: availableLanguageOptions 
-      }}
-    >
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
 }
 
-// Custom hook to use the language context
 export function useLanguage() {
   const context = useContext(LanguageContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
 }
 
-// Convenience hook to directly access translations
 export function useTranslation() {
   const { t } = useLanguage();
   return { t };
